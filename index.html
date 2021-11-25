@@ -1,0 +1,143 @@
+
+    <center>
+        <div><button id="start">start</button>
+            <button id="stop">stop</button>
+            <button id="clear">clear</button>
+            <label for="speed">vitesse</label>
+            <input type="range" id="speed" value="50" min="1" max="70">
+        </div>
+        <canvas id="app" width="200" height="200"></canvas>
+    </center>
+<script>
+    let height = document.querySelector("#app").height;
+    let width = document.querySelector("#app").width;
+    let app = document.querySelector("#app")
+    let ctx = app.getContext('2d');
+    let animationId = null;
+    let rect = app.getBoundingClientRect();
+    let isDrawing = false;
+    let x = 0;
+    let y = 0;
+
+    ctx.fillStyle = "#4E4E4E";
+    ctx.fillRect(0, 0, width, height);
+
+    let fps = document.querySelector("#speed").value; // in ms
+    let cellSize = 10;
+    let cells = []
+    let interval = null;
+
+    let genCells = () => {
+        cells = []
+        for (let i = 0; i < height; i = i + cellSize) {
+            for (let j = 0; j < width; j = j + cellSize) {
+                cells.push({ x: j, y: i, size: cellSize, alive: false });
+            }
+        }
+    };  genCells();
+
+    let clear = () => {
+        ctx.fillStyle = "#4E4E4E";
+        ctx.fillRect(0, 0, width, height);
+    }
+    let printCells = () => {
+        cells.forEach(element => {
+            if (element.alive) {
+                ctx.fillStyle = "#9c9898";
+                ctx.fillRect(element.x, element.y, element.size, element.size);
+            }
+        });
+    }
+
+    let neighborCount = (element) => {
+        let aliveCounter = 0
+        cells.forEach((el) => {
+            if(el !== element){
+                if(element.x - cellSize <= el.x && el.x <= element.x + 10 && element.y - cellSize <= el.y && el.y <= element.y + cellSize){
+                    if(el.alive)
+                        aliveCounter++;
+                }
+            }
+        });
+
+        return aliveCounter;
+    }
+    
+    let generation = () => {
+        let queue = JSON.parse(JSON.stringify(cells));
+        cells.forEach((element, index) => {
+            if(element.alive){
+                let nei = neighborCount(element);
+
+                if(nei > 3 || nei < 2){
+                    queue[index].alive = false;
+                }
+            }
+            else{
+                let nei = neighborCount(element);
+                if(nei === 3){
+                    queue[index].alive = true;
+                }
+            }
+        });
+        cells = queue;
+    }
+    let frame = () => {
+       interval = setTimeout(() => {
+            animationId = window.requestAnimationFrame(frame)
+            clear();
+            generation();
+            printCells();
+        }, 1000/fps)
+    }
+
+    let start = document.querySelector('#start').addEventListener('click', () => {
+        animationId = window.requestAnimationFrame(frame)
+    })
+    let stop = document.querySelector("#stop").addEventListener('click', () => {
+        cancelAnimationFrame(animationId);
+        clearInterval(interval)
+    })
+    let clearRect = document.querySelector("#clear").addEventListener('click', () => {
+        clear();
+        genCells();
+    })
+
+    app.addEventListener('mousedown', (e) => {
+         x = e.clientX - rect.x;
+         y = e.clientY - rect.y;
+        isDrawing = true;
+    })
+    app.addEventListener('mousemove', (e) => {
+        if(isDrawing) {
+            x = e.clientX - rect.x;
+            y = e.clientY - rect.y;
+            cells.forEach(element => {
+            if ((element.x < x && x < (element.x + cellSize)) && (element.y < y && y < (element.y + cellSize))) {
+                element.alive = true;
+            }
+        });
+            clear();
+            printCells();
+        }
+    })
+
+    speed.addEventListener("change", (e) => {
+        fps = e.target.value;
+    })
+    app.addEventListener('mouseup', (e) => {
+        if(isDrawing) {
+            cells.forEach(element => {
+            if ((element.x < x && x < (element.x + cellSize)) && (element.y < y && y < (element.y + cellSize))) {
+                element.alive = true;
+            }
+            });
+            clear();
+            printCells();
+            isDrawing = false;
+            x = 0;
+            y = 0;
+        }
+    })
+</script>
+</html>
